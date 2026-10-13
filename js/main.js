@@ -99,14 +99,16 @@ scene.add(roadGroup);
 
 const keys = {};
 const touch = { gas: false, brake: false, steer: 0, nitro: false };
-let mode = 'garage', speed = 0, distance = 0, nitro = 100, steering = 0, cameraMode = 0, paused = false;
+let mode = 'garage', speed = 0, distance = 0, nitro = 100, steering = 0, cameraMode = 0, paused = false, raceTime = 0;
 const cameraModes = ['CHASE', 'COCKPIT', 'HOOD', 'TOP'];
 const speedLabel = document.querySelector('#speed');
 const nitroLabel = document.querySelector('#nitro-value');
 const distanceLabel = document.querySelector('#distance-value');
+const timerLabel = document.querySelector('#timer-value');
 const cameraLabel = document.querySelector('#camera-mode');
 const ui = initUI({
   onStartRace: () => startRace(),
+  onResetRace: () => resetRace(),
   onOpenPanel: () => {},
   onCameraChange: () => { cameraMode = (cameraMode + 1) % cameraModes.length; cameraLabel.textContent = cameraModes[cameraMode]; },
   onNitro: value => touch.nitro = value,
@@ -116,10 +118,18 @@ const ui = initUI({
   onPause: () => { if (mode === 'race') { paused = !paused; ui.showToast(paused ? 'BALAPAN DIJEDA' : 'BALAPAN DILANJUTKAN'); } }
 });
 function startRace() {
-  mode = 'race'; paused = false; speed = 0; distance = 0; nitro = 100;
+  mode = 'race'; paused = false; speed = 0; distance = 0; nitro = 100; raceTime = 0;
   car.position.set(0, 0.16, 5); car.rotation.set(0, 0, 0);
   ui.hideMenu(); ui.showRaceHud();
   ui.showToast('BALAPAN DIMULAI — W / ↑ UNTUK GAS');
+}
+function resetRace() {
+  speed = 0; distance = 0; nitro = 100; raceTime = 0; steering = 0;
+  car.position.set(0, 0.16, 5); car.rotation.set(0, 0, 0);
+  nitroLabel.textContent = '100%'; distanceLabel.textContent = '0 m';
+  speedLabel.innerHTML = '0 <small style="font-size:.7rem">KM/H</small>';
+  timerLabel.textContent = '00:00';
+  ui.showToast('POSISI MOBIL DIULANG');
 }
 function backToGarage() {
   mode = 'garage'; speed = 0; paused = false;
@@ -130,7 +140,7 @@ addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
   if (e.key.toLowerCase() === 'c') { cameraMode = (cameraMode + 1) % cameraModes.length; cameraLabel.textContent = cameraModes[cameraMode]; }
-  if (e.key.toLowerCase() === 'r') { car.position.set(0, 0.16, 5); car.rotation.set(0, 0, 0); speed = 0; distance = 0; nitro = 100; }
+  if (e.key.toLowerCase() === 'r' && mode === 'race') resetRace();
   if (e.key === 'Escape' && mode === 'race') { paused = !paused; ui.showToast(paused ? 'BALAPAN DIJEDA' : 'BALAPAN DILANJUTKAN'); }
 });
 addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
@@ -145,6 +155,10 @@ function animate() {
     car.rotation.y += dt * 0.12;
     ring.rotation.z += dt * 0.08;
   } else if (driving) {
+    raceTime += dt;
+    const mins = Math.floor(raceTime / 60).toString().padStart(2, '0');
+    const secs = Math.floor(raceTime % 60).toString().padStart(2, '0');
+    timerLabel.textContent = `${mins}:${secs}`;
     const gas = keys.w || keys.arrowup || touch.gas;
     const brake = keys.s || keys.arrowdown || touch.brake;
     const left = keys.a || keys.arrowleft || touch.steer < 0;
@@ -154,6 +168,7 @@ function animate() {
     if (brake) speed -= 32 * dt;
     if (boosting) { speed += 24 * dt; nitro -= 24 * dt; } else nitro = Math.min(100, nitro + 8 * dt);
     speed = THREE.MathUtils.clamp(speed, 0, boosting ? 65 : 48);
+    if (Math.abs(car.position.x) > 5.9) speed = Math.max(0, speed - 18 * dt);
     const steerInput = (right ? 1 : 0) - (left ? 1 : 0);
     steering = THREE.MathUtils.damp(steering, steerInput, 5, dt);
     car.position.x = THREE.MathUtils.clamp(car.position.x + steering * (0.25 + speed / 30) * 8 * dt, -5.5, 5.5);
