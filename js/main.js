@@ -5,7 +5,7 @@ import { initUI } from './ui.js';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202833);
 scene.fog = new THREE.Fog(0x252b32, 180, 1100);
-const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.1, 2600);
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2600);
 camera.position.set(7, 4.5, 9);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(innerWidth, innerHeight);
@@ -214,7 +214,7 @@ function animate() {
     // rather than only sliding it sideways or forcing it around a loop.
     const speedFactor = THREE.MathUtils.clamp(speed / 90, 0, 1.0);
     // Gentler steering at speed keeps the car from snapping sideways.
-    const turnRate = 0.30 * speedFactor;
+    const turnRate = 0.26 * speedFactor;
     car.rotation.y -= steering * turnRate * dt;
     // On the straight test circuit, let the chassis gently realign after the driver releases steering.
     // This prevents a small impact or a sharp correction from leaving the car permanently crab-walking.
@@ -232,12 +232,12 @@ function animate() {
     if ((car.position.x < -7 || car.position.x > 7) && impactCooldown <= 0) {
       const side = car.position.x < 0 ? -1 : 1;
       car.position.x = THREE.MathUtils.clamp(car.position.x, -8.1, 8.1);
-      lateralVelocity = -side * Math.min(4.5, speedFactor * 4.5);
+      lateralVelocity = -side * Math.min(2.2, speedFactor * 2.2);
       car.rotation.y += side * (0.035 + speedFactor * 0.055);
-      car.rotation.z = THREE.MathUtils.clamp(car.rotation.z + side * 0.07, -0.16, 0.16);
+      car.rotation.z = THREE.MathUtils.clamp(car.rotation.z + side * 0.025, -0.08, 0.08);
       speed *= 0.94;
       steering *= 0.35;
-      impactCooldown = 0.55;
+      impactCooldown = 0.7;
     } else {
       car.position.x = THREE.MathUtils.clamp(car.position.x, -8.1, 8.1);
     }
@@ -264,9 +264,9 @@ function animate() {
     if (cameraMode === 1) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 0.1, 1.0, car.position.z + 0.05);
     else if (cameraMode === 2) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 1.5, 1.35, car.position.z + Math.cos(heading) * 1.5);
     else if (cameraMode === 3) target = new THREE.Vector3(car.position.x, 13, car.position.z + 3);
-    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 4.0, 3.0 + speed * 0.012, car.position.z + Math.cos(heading) * 9.5);
+    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 2.2, 4.1 + speed * 0.009, car.position.z + Math.cos(heading) * 13.5);
     camera.position.lerp(target, 1 - Math.exp(-3 * dt));
-    camera.lookAt(car.position.x - Math.sin(heading) * (cameraMode === 3 ? 0 : 2.0), cameraMode === 3 ? 0 : 0.65, car.position.z - Math.cos(heading) * (cameraMode === 3 ? 9 : 18));
+    camera.lookAt(car.position.x - Math.sin(heading) * (cameraMode === 3 ? 0 : 1.0), cameraMode === 3 ? 0 : 0.7, car.position.z - Math.cos(heading) * (cameraMode === 3 ? 9 : 9));
   }
   renderer.render(scene, camera);
 }
