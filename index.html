@@ -1,1 +1,275 @@
 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1711 Racing 3D</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#87ceeb;font-family:Arial,sans-serif}
+#hud{position:fixed;top:15px;left:15px;color:white;z-index:2;
+text-shadow:2px 2px 4px #000;pointer-events:none}
+#hud h1{margin:0 0 8px;font-size:25px}
+#speed{font-size:30px;font-weight:bold}
+#help{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);
+background:#000a;color:white;padding:10px 15px;border-radius:10px;
+text-align:center;width:max-content;max-width:95%;font-size:13px}
+#nitro{color:#53e7ff}
+#loading{position:fixed;inset:0;display:grid;place-items:center;
+background:#111;color:white;z-index:5;text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<div id="loading">🏁 1711 RACING 3D<br>Memuat game...</div>
+<div id="hud">
+  <h1>🏁 1711 RACING 3D</h1>
+  <div id="speed">0 KM/H</div>
+  <div id="nitro">NITRO: SIAP</div>
+  <div id="distance">Jarak: 0 m</div>
+</div>
+<div id="help">W / ↑ Gas · S / ↓ Rem · A D / ← → Belok · SHIFT Nitro · R Reset</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 65, 230);
+
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.1, 500);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x526344,2));
+const sun = new THREE.DirectionalLight(0xffffff,3);
+sun.position.set(-25,45,-20);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-45;
+sun.shadow.camera.right=45;
+sun.shadow.camera.top=45;
+sun.shadow.camera.bottom=-45;
+scene.add(sun);
+
+const mat=(color,roughness=0.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+const grassMat=mat(0x39833a);
+const roadMat=mat(0x303238);
+const lineMat=mat(0xffffff);
+const yellowMat=mat(0xffd52a);
+const darkMat=mat(0x15191f);
+const glassMat=new THREE.MeshStandardMaterial({color:0x77c9e8,metalness:0.35,roughness:0.18});
+const rubberMat=mat(0x101114);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(500,1000),grassMat);
+ground.rotation.x=-Math.PI/2;
+ground.position.set(0,-0.13,-350);
+ground.receiveShadow=true;
+scene.add(ground);
+
+// Jalan lurus yang panjang
+const road=new THREE.Mesh(new THREE.PlaneGeometry(16,1000),roadMat);
+road.rotation.x=-Math.PI/2;
+road.position.set(0,-0.08,-350);
+road.receiveShadow=true;
+scene.add(road);
+
+// Garis tepi jalan
+for(const x of [-7.5,7.5]){
+  const edge=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.025,1000),lineMat);
+  edge.position.set(x,0,-350);
+  scene.add(edge);
+}
+// Garis putus-putus di tengah jalan
+for(let z=30;z>-850;z-=12){
+  const stripe=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.035,5),yellowMat);
+  stripe.position.set(0,0,-z*-1); // posisi disesuaikan di bawah
+  stripe.position.z=-z;
+  scene.add(stripe);
+}
+
+// Mobil pemain
+const car=new THREE.Group();
+scene.add(car);
+
+const bodyMat=mat(0xe21b2d,0.25,0.35);
+const body=new THREE.Mesh(new THREE.BoxGeometry(2.05,0.55,4.1),bodyMat);
+body.position.y=0.8;
+body.castShadow=true;
+car.add(body);
+
+const hood=new THREE.Mesh(new THREE.BoxGeometry(1.88,0.18,1.05),bodyMat);
+hood.position.set(0,1.12,-1.25);
+car.add(hood);
+
+const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.48,0.68,1.8),glassMat);
+cabin.position.set(0,1.32,0.15);
+cabin.castShadow=true;
+car.add(cabin);
+
+const roof=new THREE.Mesh(new THREE.BoxGeometry(1.35,0.1,1.05),bodyMat);
+roof.position.set(0,1.72,0.18);
+car.add(roof);
+
+// Bemper
+for(const z of [-2.08,2.08]){
+  const bumper=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.18,0.16),darkMat);
+  bumper.position.set(0,0.61,z);
+  car.add(bumper);
+}
+
+// Lampu depan dan belakang
+for(const x of [-0.68,0.68]){
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.18,0.08),mat(0xffffd0,0.2));
+  head.position.set(x,0.89,-2.09);
+  car.add(head);
+  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.16,0.08),mat(0xff1717));
+  tail.position.set(x,0.88,2.09);
+  car.add(tail);
+}
+
+// Empat roda
+const wheels=[];
+for(const x of [-1.04,1.04]){
+  for(const z of [-1.32,1.35]){
+    const wheel=new THREE.Mesh(new THREE.CylinderGeometry(0.43,0.43,0.28,24),rubberMat);
+    wheel.rotation.z=Math.PI/2;
+    wheel.position.set(x,0.48,z);
+    wheel.castShadow=true;
+    car.add(wheel);
+    wheels.push(wheel);
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.3,16),mat(0xc5cbd2,0.3,0.7));
+    hub.rotation.z=Math.PI/2;
+    hub.position.copy(wheel.position);
+    car.add(hub);
+  }
+}
+
+// Pohon di kedua sisi jalan
+function makeTree(x,z){
+  const tree=new THREE.Group();
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.28,1.8,8),mat(0x684326));
+  trunk.position.y=0.9;
+  tree.add(trunk);
+  for(let i=0;i<3;i++){
+    const crown=new THREE.Mesh(
+      new THREE.ConeGeometry(1.05-i*0.13,2.2,8),
+      mat([0x176b31,0x21853a,0x2d9946][i])
+    );
+    crown.position.y=2.1+i*0.7;
+    tree.add(crown);
+  }
+  tree.position.set(x,0,z);
+  tree.traverse(o=>{if(o.isMesh)o.castShadow=true});
+  scene.add(tree);
+}
+for(let z=35;z>-850;z-=13){
+  makeTree(-11-Math.random()*7,z);
+  makeTree(11+Math.random()*7,z-Math.random()*5);
+}
+
+// Bangunan kecil di kejauhan
+for(let z=10;z>-800;z-=48){
+  for(const side of [-1,1]){
+    const h=5+Math.random()*15;
+    const b=new THREE.Mesh(
+      new THREE.BoxGeometry(4+Math.random()*5,h,5+Math.random()*5),
+      mat([0xbac3c9,0xd1bca3,0x8999a5][Math.floor(Math.random()*3)])
+    );
+    b.position.set(side*(24+Math.random()*18),h/2,z-Math.random()*20);
+    scene.add(b);
+  }
+}
+
+car.position.set(0,0,5);
+camera.position.set(0,5.2,13);
+
+const keys={};
+addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
+  if(e.key.toLowerCase()==='r')resetCar();
+});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
+
+let speed=0, distance=0, steer=0, nitro=100;
+function resetCar(){
+  car.position.set(0,0,5);
+  car.rotation.set(0,0,0);
+  speed=0; distance=0; steer=0; nitro=100;
+}
+
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.04);
+
+  const gas=keys['w']||keys['arrowup'];
+  const brake=keys['s']||keys['arrowdown'];
+  const left=keys['a']||keys['arrowleft'];
+  const right=keys['d']||keys['arrowright'];
+  const boosting=keys['shift']&&nitro>0&&speed>0.5;
+
+  if(gas)speed+=22*dt;
+  else speed-=5*dt;
+  if(brake)speed-=32*dt;
+  if(boosting){speed+=24*dt;nitro-=24*dt;}
+  else nitro=Math.min(100,nitro+8*dt);
+  speed=THREE.MathUtils.clamp(speed,0,boosting?65:48);
+
+  const steerInput=(right?1:0)-(left?1:0);
+  steer=THREE.MathUtils.damp(steer,steerInput,5,dt);
+  const speedFactor=0.25+speed/30;
+  car.position.x+=steer*speedFactor*8*dt;
+  car.position.x=THREE.MathUtils.clamp(car.position.x,-5.5,5.5);
+  car.rotation.y=THREE.MathUtils.damp(car.rotation.y,-steer*0.24,5,dt);
+  car.rotation.z=THREE.MathUtils.damp(car.rotation.z,-steer*0.08,4,dt);
+
+  // Efek roda berputar
+  wheels.forEach(w=>w.rotation.x-=speed*dt*0.8);
+
+  // Dunia bergerak untuk memberi efek mobil melaju
+  distance+=speed*dt/3.6;
+  const worldShift=(distance*2)%1000;
+  ground.position.z=-350+worldShift;
+  road.position.z=-350+worldShift;
+  scene.children.forEach(o=>{
+    if(o.userData.movingRoad){
+      o.position.z+=speed*dt*1.7;
+      if(o.position.z>30)o.position.z=-850;
+    }
+  });
+
+  // Kamera mengejar mobil
+  const desiredCam=new THREE.Vector3(
+    car.position.x*0.65,
+    4.7+speed*0.018,
+    12.5
+  );
+  camera.position.lerp(desiredCam,1-Math.exp(-3*dt));
+  camera.lookAt(car.position.x*0.4,1,-5);
+
+  document.getElementById('speed').textContent=Math.round(speed*3.6)+' KM/H';
+  document.getElementById('nitro').textContent='NITRO: '+Math.round(nitro)+'%'+(boosting?' ⚡':'');
+  document.getElementById('distance').textContent='Jarak: '+Math.floor(distance)+' m';
+
+  renderer.render(scene,camera);
+}
+animate();
+document.getElementById('loading').style.display='none';
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
+
