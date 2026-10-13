@@ -61,76 +61,43 @@ car.position.set(1.6, 0.16, 0);
 car.rotation.y = -0.28;
 scene.add(car);
 
-// Separate playable city circuit: an oval loop with asphalt, curbs, barriers and city blocks.
+// Separate city test circuit: long straight road for testing steering, acceleration and braking.
 const trackGroup = new THREE.Group();
 trackGroup.visible = false;
-const trackRadiusX = 48, trackRadiusZ = 66;
-const trackCenter = new THREE.Vector3(0, 0, -6);
-const trackSegments = 180;
+const trackCenter = new THREE.Vector3(0, 0, -350);
 const trackRoadMat = standard(0x30343d, 0.9, 0.04);
 const curbRed = standard(0xe32636, 0.65, 0.1);
-const curbWhite = standard(0xf0f1f4, 0.7, 0.05);
-const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), standard(0x20252d, 1, 0));
-cityGround.rotation.x = -Math.PI / 2; cityGround.position.set(0, -0.24, -6); trackGroup.add(cityGround);
-const trackPieces = [];
-for (let i = 0; i < trackSegments; i++) {
-  const a = i / trackSegments * Math.PI * 2;
-  const b = (i + 1) / trackSegments * Math.PI * 2;
-  const mid = (a + b) / 2;
-  const x = trackCenter.x + trackRadiusX * Math.cos(mid);
-  const z = trackCenter.z + trackRadiusZ * Math.sin(mid);
-  const dx = -trackRadiusX * Math.sin(mid), dz = trackRadiusZ * Math.cos(mid);
-  const length = Math.hypot(dx, dz) * (2 * Math.PI / trackSegments) + 1.15;
-  const angle = Math.atan2(dx, dz);
-  const roadPiece = new THREE.Mesh(new THREE.BoxGeometry(17, 0.18, length), trackRoadMat);
-  roadPiece.position.set(x, -0.12, z); roadPiece.rotation.y = angle; roadPiece.receiveShadow = true; trackGroup.add(roadPiece);
+const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(220, 1100), standard(0x34383f, 1, 0));
+cityGround.rotation.x = -Math.PI / 2; cityGround.position.set(0, -0.25, -350); trackGroup.add(cityGround);
+const road = new THREE.Mesh(new THREE.PlaneGeometry(18, 1000), trackRoadMat);
+road.rotation.x = -Math.PI / 2; road.position.set(0, -0.12, -350); road.receiveShadow = true; trackGroup.add(road);
+for (const x of [-9.2, 9.2]) {
+  const curb = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.16, 1000), curbRed);
+  curb.position.set(x, -0.015, -350); trackGroup.add(curb);
+  const barrier = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 1000), standard(0xb9c1cc, 0.6, 0.2));
+  barrier.position.set(x * 1.12, 0.35, -350); trackGroup.add(barrier);
+}
+for (let z = 20; z > -850; z -= 18) {
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 7), standard(0xf6f1df, 0.7, 0));
+  stripe.position.set(0, -0.015, z); trackGroup.add(stripe);
   for (const side of [-1, 1]) {
-    const curb = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.22, length), (i % 2 === 0) ? curbRed : curbWhite);
-    curb.position.set(x + Math.cos(mid) * (trackRadiusX + side * 8.7), -0.02, z + Math.sin(mid) * (trackRadiusZ + side * 8.7));
-    curb.rotation.y = angle; trackGroup.add(curb);
-  }
-  trackPieces.push({ x, z, angle });
-}
-const barrierMat = standard(0xc4c9d1, 0.55, 0.2);
-for (let i = 0; i < trackSegments; i += 3) {
-  const a = i / trackSegments * Math.PI * 2;
-  const x = trackCenter.x + (trackRadiusX + 10.2) * Math.cos(a);
-  const z = trackCenter.z + (trackRadiusZ + 10.2) * Math.sin(a);
-  const barrier = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 2.6), barrierMat);
-  barrier.position.set(x, 0.18, z); barrier.rotation.y = Math.atan2(-trackRadiusX * Math.sin(a), trackRadiusZ * Math.cos(a)); trackGroup.add(barrier);
-}
-// City blocks: tall buildings, lit windows, street lamps and grandstand-style start/finish gantry.
-const buildingMats = [0x586879, 0x747b88, 0x8a786d, 0x414e60, 0x697d7a].map(c => standard(c, 0.82, 0.08));
-for (let i = 0; i < 54; i++) {
-  const a = i / 54 * Math.PI * 2;
-  const radiusX = trackRadiusX + 22 + Math.random() * 30;
-  const radiusZ = trackRadiusZ + 25 + Math.random() * 34;
-  const x = radiusX * Math.cos(a), z = trackCenter.z + radiusZ * Math.sin(a);
-  const w = 5 + Math.random() * 8, d = 5 + Math.random() * 9, h = 10 + Math.random() * 34;
-  const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), buildingMats[i % buildingMats.length]);
-  building.position.set(x, h / 2 - 0.18, z); building.castShadow = true; building.receiveShadow = true; trackGroup.add(building);
-  const windowMat = new THREE.MeshStandardMaterial({ color: 0xffd782, emissive: 0x80551b, emissiveIntensity: 0.5, roughness: 0.45 });
-  for (let floorNo = 1; floorNo < Math.min(7, Math.floor(h / 3)); floorNo++) {
-    for (let col = -1; col <= 1; col++) {
-      const win = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.85, 0.06), windowMat);
-      win.position.set(x + col * (w / 4), floorNo * 2.5, z + d / 2 + 0.04); trackGroup.add(win);
-    }
+    const w = 7 + Math.random() * 7, d = 9 + Math.random() * 9, h = 12 + Math.random() * 30;
+    const palette = [0x586879, 0x747b88, 0x8a786d, 0x414e60, 0x697d7a];
+    const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), standard(palette[Math.floor(Math.random()*palette.length)], 0.82, 0.08));
+    building.position.set(side * (19 + w / 2 + Math.random() * 9), h / 2 - 0.2, z - 10);
+    building.castShadow = true; building.receiveShadow = true; trackGroup.add(building);
+    const windows = new THREE.Mesh(new THREE.BoxGeometry(w * 0.72, Math.max(2,h*0.45), 0.08), new THREE.MeshStandardMaterial({color:0xffd782, emissive:0x80551b, emissiveIntensity:0.25}));
+    windows.position.set(building.position.x, Math.min(h*0.58,h-1), building.position.z + d/2 + 0.05); trackGroup.add(windows);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,5,8), standard(0x333943));
+    pole.position.set(side*12,2.4,z-10); trackGroup.add(pole);
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.2,8,8), new THREE.MeshStandardMaterial({color:0xffe0a0,emissive:0xffb84d,emissiveIntensity:1.2}));
+    lamp.position.set(side*12,4.9,z-10); trackGroup.add(lamp);
   }
 }
-const lampMat = new THREE.MeshStandardMaterial({ color: 0xffe0a0, emissive: 0xffb84d, emissiveIntensity: 1.6 });
-for (let i = 0; i < 28; i++) {
-  const a = i / 28 * Math.PI * 2;
-  const x = (trackRadiusX + 12) * Math.cos(a), z = trackCenter.z + (trackRadiusZ + 12) * Math.sin(a);
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.11, 5.5, 7), standard(0x333943));
-  pole.position.set(x, 2.55, z); trackGroup.add(pole);
-  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), lampMat); bulb.position.set(x, 5.3, z); trackGroup.add(bulb);
-}
-const startLine = new THREE.Mesh(new THREE.BoxGeometry(17, 0.035, 1.5), standard(0xf8f8f8));
-startLine.position.set(trackRadiusX, -0.015, trackCenter.z); startLine.rotation.y = Math.PI / 2; trackGroup.add(startLine);
-const gantry = new THREE.Mesh(new THREE.BoxGeometry(19, 0.7, 0.7), ringMaterial);
-gantry.position.set(trackRadiusX, 6.2, trackCenter.z); gantry.rotation.y = Math.PI / 2; trackGroup.add(gantry);
+const startLine = new THREE.Mesh(new THREE.BoxGeometry(18, 0.035, 1.5), standard(0xf8f8f8));
+startLine.position.set(0, -0.015, 8); trackGroup.add(startLine);
 scene.add(trackGroup);
-let trackProgress = 0, laneOffset = 0;
+let laneOffset = 0, roadProgress = 0;
 
 const keys = {};
 const touch = { gas: false, brake: false, steer: 0, nitro: false };
@@ -153,9 +120,9 @@ const ui = initUI({
   onPause: () => { if (mode === 'race') { paused = !paused; ui.showToast(paused ? 'BALAPAN DIJEDA' : 'BALAPAN DILANJUTKAN'); } }
 });
 function startRace() {
-  mode = 'race'; paused = false; speed = 0; distance = 0; nitro = 100; raceTime = 0; trackProgress = 0; laneOffset = 0;
+  mode = 'race'; paused = false; speed = 0; distance = 0; nitro = 100; raceTime = 0; roadProgress = 0; laneOffset = 0;
   garageGroup.visible = false; trackGroup.visible = true;
-  car.position.set(trackRadiusX, 0.16, trackCenter.z); car.rotation.set(0, Math.PI / 2, 0);
+  car.position.set(0, 0.16, 5); car.rotation.set(0, 0, 0);
   ui.hideMenu(); ui.showRaceHud();
   ui.showToast('BALAPAN DIMULAI — W / ↑ UNTUK GAS');
 }
@@ -206,14 +173,11 @@ function animate() {
     speed = THREE.MathUtils.clamp(speed, 0, boosting ? 65 : 48);
     const steerInput = (right ? 1 : 0) - (left ? 1 : 0);
     steering = THREE.MathUtils.damp(steering, steerInput, 4.5, dt);
-    laneOffset = THREE.MathUtils.clamp(laneOffset + steering * (0.12 + speed / 170) * 5 * dt, -5.8, 5.8);
-    const loopLength = 2 * Math.PI * Math.sqrt((trackRadiusX * trackRadiusX + trackRadiusZ * trackRadiusZ) / 2);
-    trackProgress = (trackProgress + (speed * dt / 3.6) / loopLength * Math.PI * 2) % (Math.PI * 2);
-    const px = trackCenter.x + (trackRadiusX + laneOffset) * Math.cos(trackProgress);
-    const pz = trackCenter.z + (trackRadiusZ + laneOffset) * Math.sin(trackProgress);
-    const tangent = Math.atan2(-trackRadiusX * Math.sin(trackProgress), trackRadiusZ * Math.cos(trackProgress));
-    car.position.set(px, 0.16, pz);
-    car.rotation.y = tangent + Math.PI - steering * 0.12;
+    laneOffset = THREE.MathUtils.clamp(laneOffset + steering * (0.25 + speed / 55) * 7 * dt, -6.5, 6.5);
+    roadProgress -= speed * dt * 1.7;
+    if (roadProgress < -850) roadProgress = 0;
+    car.position.set(laneOffset, 0.16, 5);
+    car.rotation.y = -steering * 0.22;
     car.rotation.z = -steering * 0.055;
     car.userData.wheels.forEach(w => { w.tire.rotation.x -= speed * dt * 0.8; if (w.front) w.pivot.rotation.y = -steering * 0.3; });
     distance += speed * dt / 3.6;
@@ -231,9 +195,9 @@ function animate() {
     if (cameraMode === 1) target = new THREE.Vector3(car.position.x, 1.0, car.position.z - 0.05);
     else if (cameraMode === 2) target = new THREE.Vector3(car.position.x, 1.35, car.position.z - 1.5);
     else if (cameraMode === 3) target = new THREE.Vector3(car.position.x, 13, car.position.z + 3);
-    else target = new THREE.Vector3(car.position.x + Math.sin(car.rotation.y) * 8.5, 4.7 + speed * 0.018, car.position.z + Math.cos(car.rotation.y) * 8.5);
+    else target = new THREE.Vector3(car.position.x, 4.7 + speed * 0.018, car.position.z + 8.5);
     camera.position.lerp(target, 1 - Math.exp(-3 * dt));
-    camera.lookAt(car.position.x - Math.sin(car.rotation.y) * 5, cameraMode === 3 ? 0 : 0.75, car.position.z - Math.cos(car.rotation.y) * 5);
+    camera.lookAt(car.position.x, cameraMode === 3 ? 0 : 0.75, car.position.z - 5);
   }
   renderer.render(scene, camera);
 }
