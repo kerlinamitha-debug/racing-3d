@@ -3,9 +3,9 @@ import { createFormulaCar } from './car.js';
 import { initUI } from './ui.js';
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x11141c);
-scene.fog = new THREE.Fog(0x11141c, 42, 190);
-const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 500);
+scene.background = new THREE.Color(0x202833);
+scene.fog = new THREE.Fog(0x202833, 100, 650);
+const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 1200);
 camera.position.set(7, 4.5, 9);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(innerWidth, innerHeight);
@@ -167,25 +167,30 @@ function animate() {
     const left = keys.a || keys.arrowleft || touch.steer < 0;
     const right = keys.d || keys.arrowright || touch.steer > 0;
     const boosting = (keys.shift || touch.nitro) && nitro > 0 && speed > 0.5;
-    if (gas) speed += 22 * dt; else speed -= 5 * dt;
-    if (brake) speed -= 32 * dt;
-    if (boosting) { speed += 24 * dt; nitro -= 24 * dt; } else nitro = Math.min(100, nitro + 8 * dt);
-    speed = THREE.MathUtils.clamp(speed, 0, boosting ? 65 : 48);
+    if (gas) speed += 30 * dt; else speed -= 3.5 * dt;
+    if (brake) speed -= 38 * dt;
+    if (boosting) { speed += 35 * dt; nitro -= 24 * dt; } else nitro = Math.min(100, nitro + 8 * dt);
+    speed = THREE.MathUtils.clamp(speed, 0, boosting ? 90 : 75);
     const steerInput = (right ? 1 : 0) - (left ? 1 : 0);
     steering = THREE.MathUtils.damp(steering, steerInput, 3.2, dt);
     // Real forward motion and heading-based steering: turning changes the car's direction,
     // rather than only sliding it sideways or forcing it around a loop.
-    const speedFactor = speed / 48;
-    const turnRate = 1.25 * speedFactor;
+    const speedFactor = THREE.MathUtils.clamp(speed / 55, 0, 1.35);
+    // Gentler steering at speed keeps the car from snapping sideways.
+    const turnRate = 0.62 * speedFactor;
     car.rotation.y -= steering * turnRate * dt;
-    const forwardSpeed = speed * 0.34;
+    const forwardSpeed = speed;
     car.position.x -= Math.sin(car.rotation.y) * forwardSpeed * dt;
     car.position.z -= Math.cos(car.rotation.y) * forwardSpeed * dt;
     laneOffset = car.position.x;
     // Keep the test drive within the visible road and recycle to the start after the straight.
     if (car.position.x < -7 || car.position.x > 7) {
       car.position.x = THREE.MathUtils.clamp(car.position.x, -7, 7);
-      speed *= 0.88;
+      // Boundary guard must not act like an invisible brake while steering.
+      if ((car.position.x <= -7 && steering < 0) || (car.position.x >= 7 && steering > 0)) {
+        steering = 0;
+        car.rotation.z = 0;
+      }
     }
     if (car.position.z < -820) {
       car.position.z = 5;
