@@ -5,7 +5,7 @@ import { initUI } from './ui.js';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202833);
 scene.fog = new THREE.Fog(0x202833, 100, 650);
-const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 1200);
+const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 1800);
 camera.position.set(7, 4.5, 9);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(innerWidth, innerHeight);
