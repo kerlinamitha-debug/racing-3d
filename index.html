@@ -88,8 +88,8 @@ for(const x of [-7.5,7.5]){
 // Garis putus-putus di tengah jalan
 for(let z=30;z>-850;z-=12){
   const stripe=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.035,5),yellowMat);
-  stripe.position.set(0,0,-z*-1); // posisi disesuaikan di bawah
-  stripe.position.z=-z;
+  stripe.position.set(0,0,z);
+  stripe.userData.roadStripe = true;
   scene.add(stripe);
 }
 
@@ -166,6 +166,7 @@ function makeTree(x,z){
   }
   tree.position.set(x,0,z);
   tree.traverse(o=>{if(o.isMesh)o.castShadow=true});
+  tree.userData.treeObject = true;
   scene.add(tree);
 }
 for(let z=35;z>-850;z-=13){
@@ -182,6 +183,7 @@ for(let z=10;z>-800;z-=48){
       mat([0xbac3c9,0xd1bca3,0x8999a5][Math.floor(Math.random()*3)])
     );
     b.position.set(side*(24+Math.random()*18),h/2,z-Math.random()*20);
+    b.userData.buildingObject = true;
     scene.add(b);
   }
 }
@@ -236,13 +238,11 @@ function animate(){
 
   // Dunia bergerak untuk memberi efek mobil melaju
   distance+=speed*dt/3.6;
-  const worldShift=(distance*2)%1000;
-  ground.position.z=-350+worldShift;
-  road.position.z=-350+worldShift;
+  const moveZ = speed * dt * 1.7;
   scene.children.forEach(o=>{
-    if(o.userData.movingRoad){
-      o.position.z+=speed*dt*1.7;
-      if(o.position.z>30)o.position.z=-850;
+    if(o.userData.roadStripe || o.userData.treeObject || o.userData.buildingObject){
+      o.position.z += moveZ;
+      if(o.position.z > 35) o.position.z -= 900;
     }
   });
 
