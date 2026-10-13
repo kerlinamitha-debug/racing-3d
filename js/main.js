@@ -153,21 +153,22 @@ const ui = initUI({
   onPause: () => { if (mode === 'race') { paused = !paused; ui.showToast(paused ? 'BALAPAN DIJEDA' : 'BALAPAN DILANJUTKAN'); } }
 });
 function startRace() {
-  mode = 'race'; paused = false; speed = 0; distance = 0; nitro = 100; raceTime = 0;
-  car.position.set(0, 0.16, 5); car.rotation.set(0, 0, 0);
+  mode = 'race'; paused = false; speed = 0; distance = 0; nitro = 100; raceTime = 0; trackProgress = 0; laneOffset = 0;
+  garageGroup.visible = false; trackGroup.visible = true;
+  car.position.set(trackRadiusX, 0.16, trackCenter.z); car.rotation.set(0, Math.PI / 2, 0);
   ui.hideMenu(); ui.showRaceHud();
   ui.showToast('BALAPAN DIMULAI — W / ↑ UNTUK GAS');
 }
 function resetRace() {
-  speed = 0; distance = 0; nitro = 100; raceTime = 0; steering = 0;
-  car.position.set(0, 0.16, 5); car.rotation.set(0, 0, 0);
+  speed = 0; distance = 0; nitro = 100; raceTime = 0; steering = 0; trackProgress = 0; laneOffset = 0;
+  car.position.set(trackRadiusX, 0.16, trackCenter.z); car.rotation.set(0, Math.PI / 2, 0);
   nitroLabel.textContent = '100%'; distanceLabel.textContent = '0 m';
   speedLabel.innerHTML = '0 <small style="font-size:.7rem">KM/H</small>';
   timerLabel.textContent = '00:00';
   ui.showToast('POSISI MOBIL DIULANG');
 }
 function backToGarage() {
-  mode = 'garage'; speed = 0; paused = false;
+  mode = 'garage'; speed = 0; paused = false; garageGroup.visible = true; trackGroup.visible = false;
   ui.showMenu(); car.position.set(1.6, 0.16, 0); car.rotation.set(0, 0, -0.28);
   cameraMode = 0; cameraLabel.textContent = cameraModes[cameraMode];
 }
