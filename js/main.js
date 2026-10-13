@@ -98,8 +98,29 @@ for (let z = 20; z > -2050; z -= 18) {
     const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), standard(palette[Math.floor(Math.random()*palette.length)], 0.82, 0.08));
     building.position.set(side * (19 + w / 2 + Math.random() * 9), h / 2 - 0.2, z - 10);
     building.castShadow = true; building.receiveShadow = true; trackGroup.add(building);
-    const windows = new THREE.Mesh(new THREE.BoxGeometry(w * 0.72, Math.max(2,h*0.45), 0.08), new THREE.MeshStandardMaterial({color:0xffd782, emissive:0x80551b, emissiveIntensity:0.25}));
-    windows.position.set(building.position.x, Math.min(h*0.58,h-1), building.position.z + d/2 + 0.05); trackGroup.add(windows);
+    // Individual facade windows instead of one flat glowing panel.
+    const windowLit = new THREE.MeshStandardMaterial({color:0xffd99a, emissive:0x8b5b24, emissiveIntensity:0.42, roughness:0.45});
+    const windowDark = new THREE.MeshStandardMaterial({color:0x253342, emissive:0x101923, emissiveIntensity:0.12, roughness:0.35, metalness:0.18});
+    const cols = Math.max(2, Math.floor(w / 2.1));
+    const rows = Math.max(2, Math.floor((h - 2) / 2.8));
+    const winW = Math.min(0.95, (w * 0.7) / cols * 0.58);
+    const winH = Math.min(1.25, (h * 0.68) / rows * 0.58);
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const material = Math.random() > 0.32 ? windowLit : windowDark;
+        const windowMesh = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.07), material);
+        windowMesh.position.set(
+          building.position.x - w * 0.34 + col * (w * 0.68 / Math.max(1, cols - 1)),
+          1.8 + row * ((h - 3) / Math.max(1, rows - 1)),
+          building.position.z + d / 2 + 0.06
+        );
+        trackGroup.add(windowMesh);
+      }
+    }
+    // Simple roof parapet gives each block a more finished silhouette.
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.25, 0.35, d + 0.25), standard(0x343a43, 0.88, 0.05));
+    roof.position.set(building.position.x, h - 0.02, building.position.z);
+    trackGroup.add(roof);
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,5,8), standard(0x333943));
     pole.position.set(side*12,2.4,z-10); trackGroup.add(pole);
     const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.2,8,8), new THREE.MeshStandardMaterial({color:0xffe0a0,emissive:0xffb84d,emissiveIntensity:1.2}));
