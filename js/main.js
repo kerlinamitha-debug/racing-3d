@@ -84,31 +84,35 @@ for (const x of [-9.2, 9.2]) {
   const barrier = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 2200), standard(0xb9c1cc, 0.6, 0.2));
   barrier.position.set(x * 1.12, 0.35, -350); trackGroup.add(barrier);
 }
-// Dashed lane dividers add clear road scale and help speed perception.
-for (let z = 20; z > -2050; z -= 18) {
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 7), standard(0xf6f1df, 0.7, 0));
+// Reuse shared materials and reduce decorative mesh count to keep the race smooth.
+const laneStripeMat = standard(0xf6f1df, 0.7, 0);
+const laneMarkMat = standard(0xd8d9d6, 0.8, 0);
+const cityPalette = [0x586879, 0x747b88, 0x8a786d, 0x414e60, 0x697d7a];
+const windowLit = new THREE.MeshStandardMaterial({color:0xffd99a, emissive:0x8b5b24, emissiveIntensity:0.42, roughness:0.45});
+const windowDark = new THREE.MeshStandardMaterial({color:0x253342, emissive:0x101923, emissiveIntensity:0.12, roughness:0.35, metalness:0.18});
+const roofMat = standard(0x343a43, 0.88, 0.05);
+const poleMat = standard(0x333943);
+const lampMat = new THREE.MeshStandardMaterial({color:0xffe0a0,emissive:0xffb84d,emissiveIntensity:1.2});
+for (let z = 20; z > -2050; z -= 30) {
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 7), laneStripeMat);
   stripe.position.set(0, -0.015, z); trackGroup.add(stripe);
   for (const x of [-3, 3]) {
-    const laneMark = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.022, 5.5), standard(0xd8d9d6, 0.8, 0));
+    const laneMark = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.022, 5.5), laneMarkMat);
     laneMark.position.set(x, -0.012, z - 5.5); trackGroup.add(laneMark);
   }
   for (const side of [-1, 1]) {
     const w = 7 + Math.random() * 7, d = 9 + Math.random() * 9, h = 12 + Math.random() * 30;
-    const palette = [0x586879, 0x747b88, 0x8a786d, 0x414e60, 0x697d7a];
-    const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), standard(palette[Math.floor(Math.random()*palette.length)], 0.82, 0.08));
+    const building = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), standard(cityPalette[Math.floor(Math.random()*cityPalette.length)], 0.82, 0.08));
     building.position.set(side * (19 + w / 2 + Math.random() * 9), h / 2 - 0.2, z - 10);
-    building.castShadow = true; building.receiveShadow = true; trackGroup.add(building);
-    // Individual facade windows instead of one flat glowing panel.
-    const windowLit = new THREE.MeshStandardMaterial({color:0xffd99a, emissive:0x8b5b24, emissiveIntensity:0.42, roughness:0.45});
-    const windowDark = new THREE.MeshStandardMaterial({color:0x253342, emissive:0x101923, emissiveIntensity:0.12, roughness:0.35, metalness:0.18});
-    const cols = Math.max(2, Math.floor(w / 2.1));
-    const rows = Math.max(2, Math.floor((h - 2) / 2.8));
+    // Avoid hundreds of costly dynamic shadow casters in the distant city.
+    building.receiveShadow = false; trackGroup.add(building);
+    const cols = Math.max(2, Math.floor(w / 3.6));
+    const rows = Math.max(2, Math.floor((h - 2) / 5));
     const winW = Math.min(0.95, (w * 0.7) / cols * 0.58);
     const winH = Math.min(1.25, (h * 0.68) / rows * 0.58);
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        const material = Math.random() > 0.32 ? windowLit : windowDark;
-        const windowMesh = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.07), material);
+        const windowMesh = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.07), Math.random() > 0.32 ? windowLit : windowDark);
         windowMesh.position.set(
           building.position.x - w * 0.34 + col * (w * 0.68 / Math.max(1, cols - 1)),
           1.8 + row * ((h - 3) / Math.max(1, rows - 1)),
@@ -117,13 +121,11 @@ for (let z = 20; z > -2050; z -= 18) {
         trackGroup.add(windowMesh);
       }
     }
-    // Simple roof parapet gives each block a more finished silhouette.
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.25, 0.35, d + 0.25), standard(0x343a43, 0.88, 0.05));
-    roof.position.set(building.position.x, h - 0.02, building.position.z);
-    trackGroup.add(roof);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,5,8), standard(0x333943));
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.25, 0.35, d + 0.25), roofMat);
+    roof.position.set(building.position.x, h - 0.02, building.position.z); trackGroup.add(roof);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,5,8), poleMat);
     pole.position.set(side*12,2.4,z-10); trackGroup.add(pole);
-    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.2,8,8), new THREE.MeshStandardMaterial({color:0xffe0a0,emissive:0xffb84d,emissiveIntensity:1.2}));
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.2,8,8), lampMat);
     lamp.position.set(side*12,4.9,z-10); trackGroup.add(lamp);
   }
 }
