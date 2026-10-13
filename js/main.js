@@ -71,15 +71,27 @@ const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(260, 2400), standard(0
 cityGround.rotation.x = -Math.PI / 2; cityGround.position.set(0, -0.25, -1000); trackGroup.add(cityGround);
 const road = new THREE.Mesh(new THREE.PlaneGeometry(18, 2200), trackRoadMat);
 road.rotation.x = -Math.PI / 2; road.position.set(0, -0.12, -1000); road.receiveShadow = true; trackGroup.add(road);
+// Raised sidewalks separate the asphalt from the city blocks.
+for (const side of [-1, 1]) {
+  const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.22, 2200), standard(0x777b7d, 0.94, 0));
+  sidewalk.position.set(side * 15.2, -0.12, -1000); sidewalk.receiveShadow = true; trackGroup.add(sidewalk);
+  const sidewalkEdge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 2200), standard(0xb4b5b1, 0.85, 0));
+  sidewalkEdge.position.set(side * 11.55, -0.005, -1000); trackGroup.add(sidewalkEdge);
+}
 for (const x of [-9.2, 9.2]) {
   const curb = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.16, 2200), curbRed);
   curb.position.set(x, -0.015, -350); trackGroup.add(curb);
   const barrier = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 2200), standard(0xb9c1cc, 0.6, 0.2));
   barrier.position.set(x * 1.12, 0.35, -350); trackGroup.add(barrier);
 }
+// Dashed lane dividers add clear road scale and help speed perception.
 for (let z = 20; z > -2050; z -= 18) {
   const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 7), standard(0xf6f1df, 0.7, 0));
   stripe.position.set(0, -0.015, z); trackGroup.add(stripe);
+  for (const x of [-3, 3]) {
+    const laneMark = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.022, 5.5), standard(0xd8d9d6, 0.8, 0));
+    laneMark.position.set(x, -0.012, z - 5.5); trackGroup.add(laneMark);
+  }
   for (const side of [-1, 1]) {
     const w = 7 + Math.random() * 7, d = 9 + Math.random() * 9, h = 12 + Math.random() * 30;
     const palette = [0x586879, 0x747b88, 0x8a786d, 0x414e60, 0x697d7a];
