@@ -93,6 +93,14 @@ const windowDark = new THREE.MeshStandardMaterial({color:0x253342, emissive:0x10
 const roofMat = standard(0x343a43, 0.88, 0.05);
 const poleMat = standard(0x333943);
 const lampMat = new THREE.MeshStandardMaterial({color:0xffe0a0,emissive:0xffb84d,emissiveIntensity:1.2});
+// Batch city windows into instanced meshes: keep the lit-window look with far fewer draw calls.
+const windowGeometry = new THREE.BoxGeometry(1, 1, 0.07);
+const litWindows = new THREE.InstancedMesh(windowGeometry, windowLit, 6000);
+const darkWindows = new THREE.InstancedMesh(windowGeometry, windowDark, 6000);
+litWindows.frustumCulled = true;
+darkWindows.frustumCulled = true;
+const windowDummy = new THREE.Object3D();
+let litWindowCount = 0, darkWindowCount = 0;
 for (let z = 20; z > -2050; z -= 30) {
   const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 7), laneStripeMat);
   stripe.position.set(0, -0.015, z); trackGroup.add(stripe);
@@ -112,13 +120,16 @@ for (let z = 20; z > -2050; z -= 30) {
     const winH = Math.min(1.25, (h * 0.68) / rows * 0.58);
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        const windowMesh = new THREE.Mesh(new THREE.BoxGeometry(winW, winH, 0.07), Math.random() > 0.32 ? windowLit : windowDark);
-        windowMesh.position.set(
+        const isLit = Math.random() > 0.32;
+        windowDummy.position.set(
           building.position.x - w * 0.34 + col * (w * 0.68 / Math.max(1, cols - 1)),
           1.8 + row * ((h - 3) / Math.max(1, rows - 1)),
           building.position.z + d / 2 + 0.06
         );
-        trackGroup.add(windowMesh);
+        windowDummy.scale.set(winW, winH, 1);
+        windowDummy.updateMatrix();
+        if (isLit && litWindowCount < litWindows.count) litWindows.setMatrixAt(litWindowCount++, windowDummy.matrix);
+        else if (!isLit && darkWindowCount < darkWindows.count) darkWindows.setMatrixAt(darkWindowCount++, windowDummy.matrix);
       }
     }
     const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.25, 0.35, d + 0.25), roofMat);
@@ -129,6 +140,11 @@ for (let z = 20; z > -2050; z -= 30) {
     lamp.position.set(side*12,4.9,z-10); trackGroup.add(lamp);
   }
 }
+litWindows.count = litWindowCount;
+darkWindows.count = darkWindowCount;
+litWindows.instanceMatrix.needsUpdate = true;
+darkWindows.instanceMatrix.needsUpdate = true;
+trackGroup.add(litWindows, darkWindows);
 const startLine = new THREE.Mesh(new THREE.BoxGeometry(18, 0.035, 1.5), standard(0xf8f8f8));
 startLine.position.set(0, -0.015, 8); trackGroup.add(startLine);
 scene.add(trackGroup);
