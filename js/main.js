@@ -70,7 +70,7 @@ const trackSegments = 180;
 const trackRoadMat = standard(0x30343d, 0.9, 0.04);
 const curbRed = standard(0xe32636, 0.65, 0.1);
 const curbWhite = standard(0xf0f1f4, 0.7, 0.05);
-const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(320, 320), standard(0x26372f, 1, 0));
+const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(320, 320), standard(0x34383f, 1, 0));
 cityGround.rotation.x = -Math.PI / 2; cityGround.position.set(0, -0.24, -6); trackGroup.add(cityGround);
 const trackPieces = [];
 for (let i = 0; i < trackSegments; i++) {
@@ -213,7 +213,7 @@ function animate() {
     const pz = trackCenter.z + (trackRadiusZ + laneOffset) * Math.sin(trackProgress);
     const tangent = Math.atan2(-trackRadiusX * Math.sin(trackProgress), trackRadiusZ * Math.cos(trackProgress));
     car.position.set(px, 0.16, pz);
-    car.rotation.y = tangent - steering * 0.12;
+    car.rotation.y = tangent + Math.PI - steering * 0.12;
     car.rotation.z = -steering * 0.055;
     car.userData.wheels.forEach(w => { w.tire.rotation.x -= speed * dt * 0.8; if (w.front) w.pivot.rotation.y = -steering * 0.3; });
     distance += speed * dt / 3.6;
@@ -231,9 +231,9 @@ function animate() {
     if (cameraMode === 1) target = new THREE.Vector3(car.position.x, 1.0, car.position.z - 0.05);
     else if (cameraMode === 2) target = new THREE.Vector3(car.position.x, 1.35, car.position.z - 1.5);
     else if (cameraMode === 3) target = new THREE.Vector3(car.position.x, 13, car.position.z + 3);
-    else target = new THREE.Vector3(car.position.x - Math.sin(car.rotation.y) * 8.5, 4.7 + speed * 0.018, car.position.z - Math.cos(car.rotation.y) * 8.5);
+    else target = new THREE.Vector3(car.position.x + Math.sin(car.rotation.y) * 8.5, 4.7 + speed * 0.018, car.position.z + Math.cos(car.rotation.y) * 8.5);
     camera.position.lerp(target, 1 - Math.exp(-3 * dt));
-    camera.lookAt(car.position.x + Math.sin(car.rotation.y) * 5, cameraMode === 3 ? 0 : 0.75, car.position.z + Math.cos(car.rotation.y) * 5);
+    camera.lookAt(car.position.x - Math.sin(car.rotation.y) * 5, cameraMode === 3 ? 0 : 0.75, car.position.z - Math.cos(car.rotation.y) * 5);
   }
   renderer.render(scene, camera);
 }
