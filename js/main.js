@@ -179,6 +179,11 @@ function animate() {
     // Gentler steering at speed keeps the car from snapping sideways.
     const turnRate = 0.48 * speedFactor;
     car.rotation.y -= steering * turnRate * dt;
+    // On the straight test circuit, let the chassis gently realign after the driver releases steering.
+    // This prevents a small impact or a sharp correction from leaving the car permanently crab-walking.
+    if (Math.abs(steerInput) < 0.01 && speed > 3) {
+      car.rotation.y = THREE.MathUtils.damp(car.rotation.y, 0, 0.7 + speedFactor * 0.35, dt);
+    }
     const forwardSpeed = speed;
     car.position.x -= Math.sin(car.rotation.y) * forwardSpeed * dt;
     car.position.z -= Math.cos(car.rotation.y) * forwardSpeed * dt;
