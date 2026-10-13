@@ -181,7 +181,7 @@ function animate() {
     // rather than only sliding it sideways or forcing it around a loop.
     const speedFactor = THREE.MathUtils.clamp(speed / 90, 0, 1.0);
     // Gentler steering at speed keeps the car from snapping sideways.
-    const turnRate = 0.36 * speedFactor;
+    const turnRate = 0.30 * speedFactor;
     car.rotation.y -= steering * turnRate * dt;
     // On the straight test circuit, let the chassis gently realign after the driver releases steering.
     // This prevents a small impact or a sharp correction from leaving the car permanently crab-walking.
@@ -198,7 +198,7 @@ function animate() {
     // One restrained barrier impact impulse, then gradual grip recovery (not repeated per-frame bouncing).
     if ((car.position.x < -7 || car.position.x > 7) && impactCooldown <= 0) {
       const side = car.position.x < 0 ? -1 : 1;
-      car.position.x = THREE.MathUtils.clamp(car.position.x, -7, 7);
+      car.position.x = THREE.MathUtils.clamp(car.position.x, -8.1, 8.1);
       lateralVelocity = -side * Math.min(4.5, speedFactor * 4.5);
       car.rotation.y += side * (0.035 + speedFactor * 0.055);
       car.rotation.z = THREE.MathUtils.clamp(car.rotation.z + side * 0.07, -0.16, 0.16);
@@ -206,7 +206,7 @@ function animate() {
       steering *= 0.35;
       impactCooldown = 0.55;
     } else {
-      car.position.x = THREE.MathUtils.clamp(car.position.x, -7.7, 7.7);
+      car.position.x = THREE.MathUtils.clamp(car.position.x, -8.1, 8.1);
     }
     if (car.position.z < -2020) {
       car.position.z = 5;
@@ -215,7 +215,7 @@ function animate() {
     }
     car.rotation.z = THREE.MathUtils.damp(car.rotation.z, -steering * 0.055 * speedFactor, 4.5, dt);
     car.userData.wheels.forEach(w => { w.tire.rotation.x -= speed * dt * 0.8; if (w.front) w.pivot.rotation.y = -steering * 0.3; });
-    distance += speed * dt / 3.6;
+    distance += speed * dt;
     speedLabel.innerHTML = Math.round(speed * 3.6) + ' <small style="font-size:.7rem">KM/H</small>';
     nitroLabel.textContent = Math.round(nitro) + '%';
     distanceLabel.textContent = Math.floor(distance) + ' m';
@@ -231,9 +231,9 @@ function animate() {
     if (cameraMode === 1) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 0.1, 1.0, car.position.z + 0.05);
     else if (cameraMode === 2) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 1.5, 1.35, car.position.z + Math.cos(heading) * 1.5);
     else if (cameraMode === 3) target = new THREE.Vector3(car.position.x, 13, car.position.z + 3);
-    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 3.0, 2.15 + speed * 0.004, car.position.z + Math.cos(heading) * 3.0);
+    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 4.0, 3.0 + speed * 0.012, car.position.z + Math.cos(heading) * 9.5);
     camera.position.lerp(target, 1 - Math.exp(-3 * dt));
-    camera.lookAt(car.position.x - Math.sin(heading) * 9, cameraMode === 3 ? 0 : 0.68, car.position.z - Math.cos(heading) * 9);
+    camera.lookAt(car.position.x - Math.sin(heading) * (cameraMode === 3 ? 0 : 2.0), cameraMode === 3 ? 0 : 0.65, car.position.z - Math.cos(heading) * (cameraMode === 3 ? 9 : 18));
   }
   renderer.render(scene, camera);
 }
