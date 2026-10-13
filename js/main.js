@@ -5,7 +5,7 @@ import { initUI } from './ui.js';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202833);
 scene.fog = new THREE.Fog(0x252b32, 180, 1100);
-const camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 1800);
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.1, 2600);
 camera.position.set(7, 4.5, 9);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(innerWidth, innerHeight);
@@ -64,20 +64,20 @@ scene.add(car);
 // Separate city test circuit: long straight road for testing steering, acceleration and braking.
 const trackGroup = new THREE.Group();
 trackGroup.visible = false;
-const trackCenter = new THREE.Vector3(0, 0, -350);
+const trackCenter = new THREE.Vector3(0, 0, -1000);
 const trackRoadMat = new THREE.MeshStandardMaterial({ color: 0x25272b, roughness: 0.98, metalness: 0.0 });
 const curbRed = standard(0xc8c8c5, 0.88, 0.02);
-const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(220, 1100), standard(0x292d31, 1, 0));
-cityGround.rotation.x = -Math.PI / 2; cityGround.position.set(0, -0.25, -350); trackGroup.add(cityGround);
-const road = new THREE.Mesh(new THREE.PlaneGeometry(18, 1000), trackRoadMat);
-road.rotation.x = -Math.PI / 2; road.position.set(0, -0.12, -350); road.receiveShadow = true; trackGroup.add(road);
+const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(260, 2400), standard(0x292d31, 1, 0));
+cityGround.rotation.x = -Math.PI / 2; cityGround.position.set(0, -0.25, -1000); trackGroup.add(cityGround);
+const road = new THREE.Mesh(new THREE.PlaneGeometry(18, 2200), trackRoadMat);
+road.rotation.x = -Math.PI / 2; road.position.set(0, -0.12, -1000); road.receiveShadow = true; trackGroup.add(road);
 for (const x of [-9.2, 9.2]) {
-  const curb = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.16, 1000), curbRed);
+  const curb = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.16, 2200), curbRed);
   curb.position.set(x, -0.015, -350); trackGroup.add(curb);
-  const barrier = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 1000), standard(0xb9c1cc, 0.6, 0.2));
+  const barrier = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 2200), standard(0xb9c1cc, 0.6, 0.2));
   barrier.position.set(x * 1.12, 0.35, -350); trackGroup.add(barrier);
 }
-for (let z = 20; z > -850; z -= 18) {
+for (let z = 20; z > -2050; z -= 18) {
   const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 7), standard(0xf6f1df, 0.7, 0));
   stripe.position.set(0, -0.015, z); trackGroup.add(stripe);
   for (const side of [-1, 1]) {
@@ -167,37 +167,37 @@ function animate() {
     const left = keys.a || keys.arrowleft || touch.steer < 0;
     const right = keys.d || keys.arrowright || touch.steer > 0;
     const boosting = (keys.shift || touch.nitro) && nitro > 0 && speed > 0.5;
-    if (gas) speed += 48 * dt; else speed -= 2.4 * dt;
-    if (brake) speed -= 38 * dt;
-    if (boosting) { speed += 68 * dt; nitro -= 20 * dt; } else nitro = Math.min(100, nitro + 8 * dt);
-    speed = THREE.MathUtils.clamp(speed, 0, boosting ? 125 : 100);
+    if (gas) speed += 6.5 * dt; else speed -= 0.65 * dt;
+    if (brake) speed -= 15 * dt;
+    if (boosting) { speed += 9.0 * dt; nitro -= 17 * dt; } else nitro = Math.min(100, nitro + 6 * dt);
+    speed = THREE.MathUtils.clamp(speed, 0, boosting ? 90 : 75);
     const steerInput = (right ? 1 : 0) - (left ? 1 : 0);
     steering = THREE.MathUtils.damp(steering, steerInput, 3.2, dt);
     // Real forward motion and heading-based steering: turning changes the car's direction,
     // rather than only sliding it sideways or forcing it around a loop.
-    const speedFactor = THREE.MathUtils.clamp(speed / 80, 0, 1.15);
+    const speedFactor = THREE.MathUtils.clamp(speed / 75, 0, 1.0);
     // Gentler steering at speed keeps the car from snapping sideways.
-    const turnRate = 0.48 * speedFactor;
+    const turnRate = 0.36 * speedFactor;
     car.rotation.y -= steering * turnRate * dt;
     // On the straight test circuit, let the chassis gently realign after the driver releases steering.
     // This prevents a small impact or a sharp correction from leaving the car permanently crab-walking.
     if (Math.abs(steerInput) < 0.01 && speed > 3) {
-      car.rotation.y = THREE.MathUtils.damp(car.rotation.y, 0, 0.7 + speedFactor * 0.35, dt);
+      car.rotation.y = THREE.MathUtils.damp(car.rotation.y, 0, 0.18 + speedFactor * 0.12, dt);
     }
     const forwardSpeed = speed;
     car.position.x -= Math.sin(car.rotation.y) * forwardSpeed * dt;
     car.position.z -= Math.cos(car.rotation.y) * forwardSpeed * dt;
     laneOffset = car.position.x;
-    // Keep the test drive within the visible road and recycle to the start after the straight.
+    // Barrier impact: the chassis yaws and rolls, and the rear swings out before grip gradually settles it.
     if (car.position.x < -7 || car.position.x > 7) {
+      const side = car.position.x < 0 ? -1 : 1;
       car.position.x = THREE.MathUtils.clamp(car.position.x, -7, 7);
-      // Boundary guard must not act like an invisible brake while steering.
-      if ((car.position.x <= -7 && steering < 0) || (car.position.x >= 7 && steering > 0)) {
-        steering = 0;
-        car.rotation.z = 0;
-      }
+      car.rotation.y += side * (0.10 + speedFactor * 0.18);
+      car.rotation.z = THREE.MathUtils.clamp(car.rotation.z + side * 0.20, -0.32, 0.32);
+      speed *= 0.985;
+      steering *= 0.45;
     }
-    if (car.position.z < -820) {
+    if (car.position.z < -2020) {
       car.position.z = 5;
       car.position.x = THREE.MathUtils.clamp(car.position.x, -5, 5);
     }
@@ -219,9 +219,9 @@ function animate() {
     if (cameraMode === 1) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 0.1, 1.0, car.position.z + 0.05);
     else if (cameraMode === 2) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 1.5, 1.35, car.position.z + Math.cos(heading) * 1.5);
     else if (cameraMode === 3) target = new THREE.Vector3(car.position.x, 13, car.position.z + 3);
-    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 5.0, 2.9 + speed * 0.012, car.position.z + Math.cos(heading) * 5.0);
+    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 3.4, 2.25 + speed * 0.009, car.position.z + Math.cos(heading) * 3.4);
     camera.position.lerp(target, 1 - Math.exp(-3 * dt));
-    camera.lookAt(car.position.x - Math.sin(heading) * 8, cameraMode === 3 ? 0 : 0.62, car.position.z - Math.cos(heading) * 8);
+    camera.lookAt(car.position.x - Math.sin(heading) * 10, cameraMode === 3 ? 0 : 0.72, car.position.z - Math.cos(heading) * 10);
   }
   renderer.render(scene, camera);
 }
