@@ -1,4 +1,4 @@
-export function initUI({ onStartRace, onOpenPanel, onCameraChange, onNitro, onBrake, onGas, onSteer, onPause }) {
+export function initUI({ onStartRace, onResetRace, onOpenPanel, onCameraChange, onNitro, onBrake, onGas, onSteer, onPause }) {
   const loading = document.querySelector('#loading-screen');
   const progress = document.querySelector('#loading-progress');
   const percent = document.querySelector('#loading-percent');
@@ -70,6 +70,7 @@ export function initUI({ onStartRace, onOpenPanel, onCameraChange, onNitro, onBr
   document.querySelector('#nitro-button').addEventListener('pointerdown', e => { e.preventDefault(); onNitro(true); });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => document.querySelector('#nitro-button').addEventListener(type, () => onNitro(false)));
   document.querySelector('#pause-button').addEventListener('click', onPause);
+  document.querySelector('#reset-button').addEventListener('click', onResetRace);
   const bindHold = (selector, start, stop) => {
     const el = document.querySelector(selector);
     el.addEventListener('pointerdown', e => { e.preventDefault(); el.classList.add('active'); start(); });
