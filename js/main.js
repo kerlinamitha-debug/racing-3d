@@ -167,15 +167,19 @@ function animate() {
     const left = keys.a || keys.arrowleft || touch.steer < 0;
     const right = keys.d || keys.arrowright || touch.steer > 0;
     const boosting = (keys.shift || touch.nitro) && nitro > 0 && speed > 0.5;
-    if (gas) speed += 6.5 * dt; else speed -= 0.65 * dt;
-    if (brake) speed -= 15 * dt;
-    if (boosting) { speed += 9.0 * dt; nitro -= 17 * dt; } else nitro = Math.min(100, nitro + 6 * dt);
-    speed = THREE.MathUtils.clamp(speed, 0, boosting ? 90 : 75);
+    if (gas) speed += 3.8 * dt; else speed -= 0.9 * dt;
+    if (brake) speed -= 18 * dt;
+    if (boosting) { speed += 5.0 * dt; nitro = Math.max(0, nitro - 17 * dt); } else {
+      nitro = Math.min(100, nitro + 6 * dt);
+      // Nitro speed fades progressively instead of snapping down to the normal limit.
+      if (speed > 75) speed = Math.max(75, speed - 5.5 * dt);
+    }
+    speed = THREE.MathUtils.clamp(speed, 0, 90);
     const steerInput = (right ? 1 : 0) - (left ? 1 : 0);
     steering = THREE.MathUtils.damp(steering, steerInput, 3.2, dt);
     // Real forward motion and heading-based steering: turning changes the car's direction,
     // rather than only sliding it sideways or forcing it around a loop.
-    const speedFactor = THREE.MathUtils.clamp(speed / 75, 0, 1.0);
+    const speedFactor = THREE.MathUtils.clamp(speed / 90, 0, 1.0);
     // Gentler steering at speed keeps the car from snapping sideways.
     const turnRate = 0.36 * speedFactor;
     car.rotation.y -= steering * turnRate * dt;
@@ -219,9 +223,9 @@ function animate() {
     if (cameraMode === 1) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 0.1, 1.0, car.position.z + 0.05);
     else if (cameraMode === 2) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 1.5, 1.35, car.position.z + Math.cos(heading) * 1.5);
     else if (cameraMode === 3) target = new THREE.Vector3(car.position.x, 13, car.position.z + 3);
-    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 3.4, 2.25 + speed * 0.009, car.position.z + Math.cos(heading) * 3.4);
+    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 2.2, 1.75 + speed * 0.006, car.position.z + Math.cos(heading) * 2.2);
     camera.position.lerp(target, 1 - Math.exp(-3 * dt));
-    camera.lookAt(car.position.x - Math.sin(heading) * 10, cameraMode === 3 ? 0 : 0.72, car.position.z - Math.cos(heading) * 10);
+    camera.lookAt(car.position.x - Math.sin(heading) * 12, cameraMode === 3 ? 0 : 0.78, car.position.z - Math.cos(heading) * 12);
   }
   renderer.render(scene, camera);
 }
