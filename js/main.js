@@ -97,7 +97,7 @@ for (let z = 20; z > -2050; z -= 18) {
 const startLine = new THREE.Mesh(new THREE.BoxGeometry(18, 0.035, 1.5), standard(0xf8f8f8));
 startLine.position.set(0, -0.015, 8); trackGroup.add(startLine);
 scene.add(trackGroup);
-let laneOffset = 0, roadProgress = 0;
+let laneOffset = 0, roadProgress = 0, lateralVelocity = 0, impactCooldown = 0;
 
 const keys = {};
 const touch = { gas: false, brake: false, steer: 0, nitro: false };
@@ -120,14 +120,14 @@ const ui = initUI({
   onPause: () => { if (mode === 'race') { paused = !paused; ui.showToast(paused ? 'BALAPAN DIJEDA' : 'BALAPAN DILANJUTKAN'); } }
 });
 function startRace() {
-  mode = 'race'; paused = false; speed = 0; distance = 0; nitro = 100; raceTime = 0; roadProgress = 0; laneOffset = 0; steering = 0;
+  mode = 'race'; paused = false; speed = 0; distance = 0; nitro = 100; raceTime = 0; roadProgress = 0; laneOffset = 0; steering = 0; lateralVelocity = 0; impactCooldown = 0; cameraMode = 0; cameraLabel.textContent = cameraModes[cameraMode];
   garageGroup.visible = false; trackGroup.visible = true;
   car.position.set(0, 0.16, 5); car.rotation.set(0, 0, 0);
   ui.hideMenu(); ui.showRaceHud();
   ui.showToast('BALAPAN DIMULAI — W / ↑ UNTUK GAS');
 }
 function resetRace() {
-  speed = 0; distance = 0; nitro = 100; raceTime = 0; steering = 0; laneOffset = 0;
+  speed = 0; distance = 0; nitro = 100; raceTime = 0; steering = 0; laneOffset = 0; lateralVelocity = 0; impactCooldown = 0;
   car.position.set(0, 0.16, 5); car.rotation.set(0, 0, 0);
   nitroLabel.textContent = '100%'; distanceLabel.textContent = '0 m';
   speedLabel.innerHTML = '0 <small style="font-size:.7rem">KM/H</small>';
@@ -189,21 +189,29 @@ function animate() {
       car.rotation.y = THREE.MathUtils.damp(car.rotation.y, 0, 0.18 + speedFactor * 0.12, dt);
     }
     const forwardSpeed = speed;
+    impactCooldown = Math.max(0, impactCooldown - dt);
     car.position.x -= Math.sin(car.rotation.y) * forwardSpeed * dt;
+    car.position.x += lateralVelocity * dt;
+    lateralVelocity *= Math.exp(-1.8 * dt);
     car.position.z -= Math.cos(car.rotation.y) * forwardSpeed * dt;
     laneOffset = car.position.x;
-    // Barrier impact: the chassis yaws and rolls, and the rear swings out before grip gradually settles it.
-    if (car.position.x < -7 || car.position.x > 7) {
+    // One restrained barrier impact impulse, then gradual grip recovery (not repeated per-frame bouncing).
+    if ((car.position.x < -7 || car.position.x > 7) && impactCooldown <= 0) {
       const side = car.position.x < 0 ? -1 : 1;
       car.position.x = THREE.MathUtils.clamp(car.position.x, -7, 7);
-      car.rotation.y += side * (0.10 + speedFactor * 0.18);
-      car.rotation.z = THREE.MathUtils.clamp(car.rotation.z + side * 0.20, -0.32, 0.32);
-      speed *= 0.985;
-      steering *= 0.45;
+      lateralVelocity = -side * Math.min(4.5, speedFactor * 4.5);
+      car.rotation.y += side * (0.035 + speedFactor * 0.055);
+      car.rotation.z = THREE.MathUtils.clamp(car.rotation.z + side * 0.07, -0.16, 0.16);
+      speed *= 0.94;
+      steering *= 0.35;
+      impactCooldown = 0.55;
+    } else {
+      car.position.x = THREE.MathUtils.clamp(car.position.x, -7.7, 7.7);
     }
     if (car.position.z < -2020) {
       car.position.z = 5;
       car.position.x = THREE.MathUtils.clamp(car.position.x, -5, 5);
+      lateralVelocity = 0;
     }
     car.rotation.z = THREE.MathUtils.damp(car.rotation.z, -steering * 0.055 * speedFactor, 4.5, dt);
     car.userData.wheels.forEach(w => { w.tire.rotation.x -= speed * dt * 0.8; if (w.front) w.pivot.rotation.y = -steering * 0.3; });
@@ -223,9 +231,9 @@ function animate() {
     if (cameraMode === 1) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 0.1, 1.0, car.position.z + 0.05);
     else if (cameraMode === 2) target = new THREE.Vector3(car.position.x - Math.sin(heading) * 1.5, 1.35, car.position.z + Math.cos(heading) * 1.5);
     else if (cameraMode === 3) target = new THREE.Vector3(car.position.x, 13, car.position.z + 3);
-    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 2.2, 1.75 + speed * 0.006, car.position.z + Math.cos(heading) * 2.2);
+    else target = new THREE.Vector3(car.position.x + Math.sin(heading) * 3.0, 2.15 + speed * 0.004, car.position.z + Math.cos(heading) * 3.0);
     camera.position.lerp(target, 1 - Math.exp(-3 * dt));
-    camera.lookAt(car.position.x - Math.sin(heading) * 12, cameraMode === 3 ? 0 : 0.78, car.position.z - Math.cos(heading) * 12);
+    camera.lookAt(car.position.x - Math.sin(heading) * 9, cameraMode === 3 ? 0 : 0.68, car.position.z - Math.cos(heading) * 9);
   }
   renderer.render(scene, camera);
 }
