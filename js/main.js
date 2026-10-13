@@ -70,7 +70,7 @@ const trackSegments = 180;
 const trackRoadMat = standard(0x30343d, 0.9, 0.04);
 const curbRed = standard(0xe32636, 0.65, 0.1);
 const curbWhite = standard(0xf0f1f4, 0.7, 0.05);
-const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(320, 320), standard(0x34383f, 1, 0));
+const cityGround = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), standard(0x20252d, 1, 0));
 cityGround.rotation.x = -Math.PI / 2; cityGround.position.set(0, -0.24, -6); trackGroup.add(cityGround);
 const trackPieces = [];
 for (let i = 0; i < trackSegments; i++) {
@@ -80,8 +80,8 @@ for (let i = 0; i < trackSegments; i++) {
   const x = trackCenter.x + trackRadiusX * Math.cos(mid);
   const z = trackCenter.z + trackRadiusZ * Math.sin(mid);
   const dx = -trackRadiusX * Math.sin(mid), dz = trackRadiusZ * Math.cos(mid);
-  const length = Math.hypot(dx, dz) * (2 * Math.PI / trackSegments) + 0.25;
-  const angle = Math.atan2(-dx, dz);
+  const length = Math.hypot(dx, dz) * (2 * Math.PI / trackSegments) + 1.15;
+  const angle = Math.atan2(dx, dz);
   const roadPiece = new THREE.Mesh(new THREE.BoxGeometry(17, 0.18, length), trackRoadMat);
   roadPiece.position.set(x, -0.12, z); roadPiece.rotation.y = angle; roadPiece.receiveShadow = true; trackGroup.add(roadPiece);
   for (const side of [-1, 1]) {
